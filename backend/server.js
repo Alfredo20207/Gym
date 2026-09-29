@@ -23,8 +23,8 @@ app.get('/api/servicios', async (req, res) => {
 
 app.get('/api/planes', async (req, res) => {
     try {
-        CONST [planes] = await db.execute(
-            'SELECT id, nombre, precio_mxn_centavos, duracion_dias, beneficios FROM planes WHERE activo= 1'
+        const [planes] = await db.execute(
+            'SELECT id, nombre, precio_mxn_centavos, duracion_dias, beneficios FROM planes WHERE activo= 1 order by orden'
         );
 
         res.json(planes);
@@ -33,6 +33,30 @@ app.get('/api/planes', async (req, res) => {
         res.status(500).json({ mensaje: 'No se pudieron cargar los planes' });
     }
 });
+
+app.get('/api/horarios', async (req,res) => {
+    try{
+        const [horarios] = await db.execute(
+            'SELECT dia_semana, abre, cierra, cerrado FROM horarios ORDER BY dia_semana'
+        );
+        res.json(horarios);
+    } catch (error) {
+        console.error('Error al consultar horarios:', error);
+        res.status(500).json({ mensaje: 'No se pudieron cargar los horarios' });
+    }
+});
+
+app.get('/api/gimnasio', async (req,res) => {
+    try{
+        const [gimnasio] = await db.execute(
+            'SELECT id, nombre, descripcion, direccion, telefono, correo_contacto FROM gimnasio'
+        );
+        res.json(gimnasio);
+    } catch (error) {
+        console.error('Error al consultar gimnasio:', error);
+        res.status(500).json({ mensaje: 'No se pudo cargar la información del gimnasio' });
+    }
+})
 
 app.listen(PORT, () => {
   console.log(`Servidor en http://localhost:${PORT}`);
