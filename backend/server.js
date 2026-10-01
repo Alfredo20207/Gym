@@ -3,7 +3,7 @@ const db = require('./db');
 
 const app = express();
 const PORT = 3000;
-
+const argon2 = require('argon2');
 // Permite recibir datos en formato JSON.
 app.use(express.json());
 
@@ -139,16 +139,36 @@ app.post('/api/registro', async (req, res) => {
             });
         }
 
-        res.json({
-            mensaje: 'Datos válidos y correo disponible'
+        const passwordHash = await argon2.hash(password);
+
+        const [resultado] = await db.execute(
+            `INSERT INTO usuarios (nombre, correo, password_hash, rol)
+            VALUES (?, ?, ?, ?)`,
+            [nombre.trim(), correoLimpio, passwordHash, 'usuario']
+        );
+
+        res.status(201).json({
+            mensaje: 'Usuario registrado correctamente',
+            usuario: {
+                id: resultado.insertId,
+                nombre: nombre.trim(),
+                correo: correoLimpio,
+                rol: 'usuario'
+            }
         });
     } catch (error) {
-        console.error('Error al consultar el correo:', error);
-
-        res.status(500).json({
-            mensaje: 'No se pudo verificar el correo'
+    if (error.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({
+            mensaje: 'El correo ya está registrado'
         });
     }
+
+    console.error('Error al registrar usuario:', error);
+
+    res.status(500).json({
+        mensaje: 'No se pudo registrar el usuario'
+    });
+}
 });
 
 // Iniciar el servidor.
