@@ -75,11 +75,19 @@ app.post('/api/registro', (req, res) => {
   const correoLimpio = correo.trim().toLowerCase();// trim elimina espacion al inicio y final, toLowerCase convierte a minusculas
 
   const formatoCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  //validacion de correo electronico
   if (!formatoCorreo.test(correoLimpio)) { //test comprueba el formato del correo 
     return res.status(400).json({ //return detiene la funcion si el formato es incorrecto
       mensaje: 'El correo electrónico no tiene un formato válido'
     });
   }
+
+
+  if (password.length < 12) { //validacion de password
+    return res.status(400).json({
+        mensaje: 'La contraseña debe tener al menos 12 caracteres'
+    });
+    }
   res.json({ mensaje: 'Datos recibidos correctamente' });
 });
 
