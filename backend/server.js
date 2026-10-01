@@ -72,6 +72,14 @@ app.post('/api/registro', (req, res) => {
     });
   }
 
+  const correoLimpio = correo.trim().toLowerCase();// trim elimina espacion al inicio y final, toLowerCase convierte a minusculas
+
+  const formatoCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!formatoCorreo.test(correoLimpio)) { //test comprueba el formato del correo 
+    return res.status(400).json({ //return detiene la funcion si el formato es incorrecto
+      mensaje: 'El correo electrónico no tiene un formato válido'
+    });
+  }
   res.json({ mensaje: 'Datos recibidos correctamente' });
 });
 
