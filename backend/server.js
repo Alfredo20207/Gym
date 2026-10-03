@@ -126,37 +126,60 @@ app.post('/api/registro', async (req, res) => {
         });
     }
 
-    // Consultar si el correo ya existe.
-    try {
-        const [usuarios] = await db.execute(
-            'SELECT id FROM usuarios WHERE correo = ? LIMIT 1',
-            [correoLimpio]
-        );
+    let conexion;
 
-        if (usuarios.length > 0) {
-            return res.status(409).json({
-                mensaje: 'El correo ya está registrado'
-            });
-        }
+try {
+    const [usuarios] = await db.execute(
+        'SELECT id FROM usuarios WHERE correo = ? LIMIT 1',
+        [correoLimpio]
+    );
 
-        const passwordHash = await argon2.hash(password);  // hash para aplicar hashing similar a la encriptacion
-
-        const [resultado] = await db.execute(
-            `INSERT INTO usuarios (nombre, correo, password_hash, rol)
-            VALUES (?, ?, ?, ?)`,
-            [nombre.trim(), correoLimpio, passwordHash, 'usuario']
-        );
-
-        res.status(201).json({
-            mensaje: 'Usuario registrado correctamente',
-            usuario: {
-                id: resultado.insertId,
-                nombre: nombre.trim(),
-                correo: correoLimpio,
-                rol: 'usuario'
-            }
+    if (usuarios.length > 0) {
+        return res.status(409).json({
+            mensaje: 'El correo ya está registrado'
         });
-    } catch (error) {
+    }
+
+    const passwordHash = await argon2.hash(password);
+
+    // Usar la misma conexión para ambas operaciones.
+    conexion = await db.getConnection();
+    await conexion.beginTransaction();
+
+    // Crear el usuario.
+    const [resultado] = await conexion.execute(
+        `INSERT INTO usuarios (nombre, correo, password_hash, rol)
+         VALUES (?, ?, ?, ?)`,
+        [nombre.trim(), correoLimpio, passwordHash, 'usuario']
+    );
+
+    // Crear su perfil usando el ID del usuario recién creado.
+    await conexion.execute(
+        'INSERT INTO perfiles (usuario_id) VALUES (?)',
+        [resultado.insertId]
+    );
+
+    // Confirmar ambas operaciones.
+    await conexion.commit();
+
+    res.status(201).json({
+        mensaje: 'Usuario y perfil registrados correctamente',
+        usuario: {
+            id: resultado.insertId,
+            nombre: nombre.trim(),
+            correo: correoLimpio,
+            rol: 'usuario'
+        }
+    });
+} catch (error) {
+    if (conexion) {
+        try {
+            await conexion.rollback();
+        } catch (errorRollback) {
+            console.error('Error al deshacer el registro:', errorRollback);
+        }
+    }
+
     if (error.code === 'ER_DUP_ENTRY') {
         return res.status(409).json({
             mensaje: 'El correo ya está registrado'
@@ -168,6 +191,10 @@ app.post('/api/registro', async (req, res) => {
     res.status(500).json({
         mensaje: 'No se pudo registrar el usuario'
     });
+    } finally {
+    if (conexion) {
+        conexion.release();
+    }
 }
 });
 
