@@ -139,7 +139,7 @@ app.post('/api/registro', async (req, res) => {
             });
         }
 
-        const passwordHash = await argon2.hash(password);
+        const passwordHash = await argon2.hash(password);  // hash para aplicar hashing similar a la encriptacion
 
         const [resultado] = await db.execute(
             `INSERT INTO usuarios (nombre, correo, password_hash, rol)
