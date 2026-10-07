@@ -198,6 +198,66 @@ try {
 }
 });
 
+app.post('/api/login', async (req, res) => {
+    const { correo, password } = req.body ?? {};
+
+    if (
+        typeof correo !== 'string' || !correo.trim() ||
+        typeof password !== 'string' || !password.trim()
+    ) {
+        return res.status(400).json({
+            mensaje: 'Correo y contraseña son obligatorios'
+        });
+    }
+
+    const correoLimpio = correo.trim().toLowerCase();
+
+    try {
+        const [usuarios] = await db.execute(
+            `SELECT id, nombre, correo, password_hash, rol
+             FROM usuarios
+             WHERE correo = ? AND activo = 1
+             LIMIT 1`,
+            [correoLimpio]
+        );
+
+        if (usuarios.length === 0) {
+            return res.status(401).json({
+                mensaje: 'Correo o contraseña incorrectos'
+            });
+        }
+
+        const usuario = usuarios[0];
+
+        const coincide = await argon2.verify(
+            usuario.password_hash,
+            password
+        );
+
+        if (!coincide) {
+            return res.status(401).json({
+                mensaje: 'Correo o contraseña incorrectos'
+            });
+        }
+
+        res.json({
+            mensaje: 'Credenciales correctas',
+            usuario: {
+                id: usuario.id,
+                nombre: usuario.nombre,
+                correo: usuario.correo,
+                rol: usuario.rol
+            }
+        });
+    } catch (error) {
+        console.error('Error al comprobar el login:', error);
+
+        res.status(500).json({
+            mensaje: 'No se pudo procesar el login'
+        });
+    }
+});
+
 // Iniciar el servidor.
 app.listen(PORT, () => {
     console.log(`Servidor en http://localhost:${PORT}`);
