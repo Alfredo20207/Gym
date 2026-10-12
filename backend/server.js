@@ -1,5 +1,6 @@
 require('dotenv').config();
 const session = require('express-session');
+
 const express = require('express');
 const db = require('./db');
 
@@ -8,6 +9,10 @@ const PORT = 3000;
 const argon2 = require('argon2');
 // Permite recibir datos en formato JSON.
 app.use(express.json());
+
+app.use(session({
+    
+}));
 
 // Comprobar que el servidor funciona.
 app.get('/api/health', (req, res) => {
