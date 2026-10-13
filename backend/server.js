@@ -11,7 +11,16 @@ const argon2 = require('argon2');
 app.use(express.json());
 
 app.use(session({
-    
+    name : 'gym.sid',
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true, //impide que el JS del navegador la lea
+        secure: false, // nos deja usar el localhost
+        maxAge: 1000 * 60 * 60
+    }
 }));
 
 // Comprobar que el servidor funciona.
