@@ -23,6 +23,7 @@ app.use(session({
     }
 }));
 
+
 // Comprobar que el servidor funciona.
 app.get('/api/health', (req, res) => {
     res.json({
@@ -256,7 +257,7 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        req.session.usiario = {
+        req.session.usuario = {
             id: usuario.id,
             nombre: usuario.nombre,
             correo: usuario.correo,
@@ -293,6 +294,36 @@ app.get('/api/session', (req, res) => {
     mensaje: 'Sesión activa',
     usuario: req.session.usuario
    });
+});
+
+//para realziar el logout de la sesion
+
+app.post('/api/logout', (req, res) => {
+    req.session.destroy((error) => {
+        if(error){
+            console.error('Error al cerrar session:', error);
+            return res.status(500).json({
+                mensaje: 'no se pudo cerrar la session'
+            });
+        }
+        res.clearCookie('gym.sid', { payh: '/' });
+        res.json({ mensaje: 'Sesion cerrada correctamente' });
+    });
+});
+
+// protege las rutas que requieren autenticación
+function verificarSesion(req, res, next) {
+    if(!req.session.usuario){
+        return res.status(401).json ({ mensaje: ' Debes iniciar session '});
+    }
+    next();
+}
+
+// para consultar quien esta logueado y obtener su informacion
+app.get ('/api/perfil', verificarSesion, async (req, res) => {
+    res.json({
+        usuario: req.session.usuario
+    });
 });
 
 
