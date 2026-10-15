@@ -256,6 +256,13 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
+        req.session.usiario = {
+            id: usuario.id,
+            nombre: usuario.nombre,
+            correo: usuario.correo,
+            rol: usuario.rol
+        };
+
         res.json({
             mensaje: 'Credenciales correctas',
             usuario: {
@@ -273,6 +280,21 @@ app.post('/api/login', async (req, res) => {
         });
     }
 });
+
+//para comprobar si el login dejo una session activa
+app.get('/api/session', (req, res) => {
+   if(!req.session.usuario){
+    return res.status(401).json({
+        mensaje: 'No hay sesión activa'
+    });
+   }
+
+   res.json({
+    mensaje: 'Sesión activa',
+    usuario: req.session.usuario
+   });
+});
+
 
 // Iniciar el servidor.
 app.listen(PORT, () => {
