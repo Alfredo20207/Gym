@@ -23,6 +23,13 @@ app.use(session({
     }
 }));
 
+// protege las rutas que requieren autenticación
+function verificarSesion(req, res, next) {
+    if(!req.session.usuario){
+        return res.status(401).json ({ mensaje: ' Debes iniciar session '});
+    }
+    next();
+}
 
 // Comprobar que el servidor funciona.
 app.get('/api/health', (req, res) => {
@@ -311,13 +318,7 @@ app.post('/api/logout', (req, res) => {
     });
 });
 
-// protege las rutas que requieren autenticación
-function verificarSesion(req, res, next) {
-    if(!req.session.usuario){
-        return res.status(401).json ({ mensaje: ' Debes iniciar session '});
-    }
-    next();
-}
+
 
 // para consultar quien esta logueado y obtener su informacion
 app.get ('/api/perfil', verificarSesion, async (req, res) => {
