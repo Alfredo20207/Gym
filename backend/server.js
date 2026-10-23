@@ -31,6 +31,70 @@ function verificarSesion(req, res, next) {
     next();
 }
 
+//control de acceso para rutas que requieren rol de administrador
+function verificarAdmin(req, res, next){
+    if(req.session.usuario.rol !== 'admin'){
+        return res.status(403).json({
+            mensaje: 'Acceso restringido a adminsitradores'
+        });
+    }
+    next();
+}
+
+
+app.put('/api/admin/usuarios/:id', verificarSesion, verificarAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const { nombre, correo } = req.body;
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({
+      mensaje: 'ID de usuario inválido'
+    });
+  }
+
+  if (
+    typeof nombre !== 'string' || !nombre.trim() ||
+    typeof correo !== 'string' || !correo.trim()
+  ) {
+    return res.status(400).json({
+      mensaje: 'Nombre y correo son obligatorios'
+    });
+  }
+
+  try {
+    const [existe] = await db.execute(
+      'SELECT id FROM usuarios WHERE id = ?',
+      [id]
+    );
+
+    if (existe.length === 0) {
+      return res.status(404).json({
+        mensaje: 'Usuario no encontrado'
+      });
+    }
+
+    await db.execute(
+      'UPDATE usuarios SET nombre = ?, correo = ? WHERE id = ?',
+      [nombre.trim(), correo.trim().toLowerCase(), id]
+    );
+
+    return res.json({
+      mensaje: 'Usuario actualizado correctamente'
+    });
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({
+        mensaje: 'El correo ya está registrado'
+      });
+    }
+
+    console.error('Error al actualizar usuario:', error);
+    return res.status(500).json({
+      mensaje: 'No se pudo actualizar el usuario'
+    });
+  }
+});
+
 // Comprobar que el servidor funciona.
 app.get('/api/health', (req, res) => {
     res.json({
@@ -327,6 +391,21 @@ app.get ('/api/perfil', verificarSesion, async (req, res) => {
     });
 });
 
+// Ruta protegida para administradores: consultar todos los usuarios.
+app.get('/api/admin/usuarios', verificarSesion, verificarAdmin, async (req, res) => {
+    try {
+        const [usuarios] = await db.execute(
+            'SELECT id, nombre, correo, rol FROM usuarios'
+        );
+        res.json(usuarios);
+    }
+    catch (error){
+        console.error('Error al consultar usuarios', error);
+        res.status(500).json({
+            mensaje: ' No se pudieron cargar los usuarios'
+        });
+    }
+});
 
 // Iniciar el servidor.
 app.listen(PORT, () => {
